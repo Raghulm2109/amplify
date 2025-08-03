@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cognito Image Gallery</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+    }
+    img {
+      width: 200px;
+      height: auto;
+      margin: 10px;
+      border-radius: 12px;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    img:hover {
+      transform: scale(1.05);
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<script>
+  const domain = "https://ap-southeast-1afuovmigj.auth.ap-southeast-1.amazoncognito.com";
+  const clientId = "7u4aik1atk0krdtfoc3cdoho1";
+  const clientSecret = "vgs8upk2nrqjs4oon7t5kbgv1t9oi1b87dki4j03rckghti36d";
+  const redirectUri = "https://main.d30ywk39l19qcq.amplifyapp.com";
+
+  function showGallery() {
+    document.body.innerHTML = `
+      <h1>✅ <b>Welcome to the Image Gallery!</b></h1>
+      <a href="https://placekitten.com/800/600" target="_blank">
+        <img src="https://placekitten.com/300/200" alt="Image 1">
+      </a>
+      <a href="https://placebear.com/800/600" target="_blank">
+        <img src="https://placebear.com/300/200" alt="Image 2">
+      </a>
+      <a href="https://picsum.photos/800/600" target="_blank">
+        <img src="https://picsum.photos/300/200" alt="Image 3">
+      </a>
+      <br><br>
+      <button onclick="logout()">📥 Logout</button>
+    `;
+  }
+
+  function logout() {
+    localStorage.removeItem("id_token");
+    window.location.href = `${domain}/logout?client_id=${clientId}&logout_uri=${redirectUri}`;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+
+  if (code) {
+    const basicAuth = btoa(`${clientId}:${clientSecret}`);
+
+    fetch(`${domain}/oauth2/token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${basicAuth}`
+      },
+      body: new URLSearchParams({
+        grant_type: "authorization_code",
+        code: code,
+        redirect_uri: redirectUri
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.id_token) {
+        localStorage.setItem("id_token", data.id_token);
+        showGallery();
+      } else {
+        document.body.innerHTML = `<h2>❌ Failed to login</h2><pre>${JSON.stringify(data, null, 2)}</pre>`;
+      }
+    })
+    .catch(err => {
+      document.body.innerHTML = `<h2>❌ Error</h2><pre>${err.message}</pre>`;
+    });
+
+  } else {
+    // Redirect to Cognito login
+    window.location.href = `${domain}/login?client_id=${clientId}&response_type=code&scope=openid+email+phone&redirect_uri=${redirectUri}`;
+  }
+</script>
+
+</body>
+</html>
